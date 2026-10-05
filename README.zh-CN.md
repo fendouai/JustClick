@@ -187,4 +187,8 @@ python3 scripts/history/test_discover.py
 
 如果 JustClick 帮你省下了重复输入，欢迎点一个 Star，或分享你的实际用法。
 
-<sub>项目整体软件许可证尚未指定，仓库已附第三方提示词许可证。</sub>
+## 许可证
+
+[MIT](LICENSE) · Copyright (c) 2026 fendouai。
+
+第三方提示词内容继续遵守各自的许可证与署名要求，详见[第三方说明](THIRD_PARTY_LICENSES/NOTICE.txt)。

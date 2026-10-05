@@ -189,4 +189,8 @@ Useful contributions include reproducible composer failures, accessibility impro
 
 If JustClick makes your daily workflow easier, a star or a shared use case helps others find it.
 
-<sub>A project-wide software license has not yet been declared. Third-party prompt licenses are included in this repository.</sub>
+## License
+
+[MIT](LICENSE) · Copyright (c) 2026 fendouai.
+
+Third-party prompt content remains subject to its respective licenses and attribution requirements. See [third-party notices](THIRD_PARTY_LICENSES/NOTICE.txt).

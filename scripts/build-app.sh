@@ -23,6 +23,7 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 </dict></plist>
 PLIST
 mkdir -p "$app/Contents/Resources/Licenses"
+cp LICENSE "$app/Contents/Resources/Licenses/JustClick-MIT.txt"
 cp THIRD_PARTY_LICENSES/* "$app/Contents/Resources/Licenses/"
 mkdir -p "$app/Contents/Resources/history"
 cp scripts/history/discover.py "$app/Contents/Resources/history/discover.py"
