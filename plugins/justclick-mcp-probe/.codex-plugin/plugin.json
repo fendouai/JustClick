@@ -1,0 +1,12 @@
+{
+  "name": "justclick-mcp-probe",
+  "version": "0.1.0",
+  "description": "JustClick 当前聊天按钮与 MCP Apps 能力验证",
+  "author": { "name": "JustClick local development" },
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "JustClick MCP 验证",
+    "shortDescription": "验证聊天侧栏、宿主能力和按钮消息回传",
+    "defaultPrompt": "打开 JustClick MCP 验证面板。"
+  }
+}

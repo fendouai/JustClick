@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "justclick-probe": {
+      "command": "/opt/homebrew/bin/node",
+      "args": ["/Users/f/GitHub/JustClick/plugins/justclick-mcp-probe/server.mjs"]
+    }
+  }
+}

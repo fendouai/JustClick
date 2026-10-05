@@ -1,0 +1,18 @@
+JustClick bundled prompt collection (2026-10-05)
+
+prompts.chat — https://github.com/f/prompts.chat
+Prompt content/data: CC0 1.0 Universal. Site/application code is separately MIT licensed.
+JustClick's everyday prompts are short original current-chat formulations informed by task categories;
+the English versions are JustClick translations. This bundle does not contain the upstream website code.
+See prompts-chat-CC0.txt.
+
+best-prompts — https://github.com/xstongxue/best-prompts
+Apache License 2.0; copyright and authorship remain with upstream contributors.
+Eight scenario prompts are condensed adaptations of the following upstream files, plus English translations:
+  dev-design-prompt.md; dev-implementation-prompt.md; doc-weekly-report-prompt.md;
+  doc-summary-report-prompt.md; codegen-project-overview-prompt.md;
+  codegen-resume-format-prompt.md; paper-write-prompt.md; wechat-article-write-prompt.md.
+Changes by JustClick: shortened for use with the current conversation, removed fixed templates and
+workflow hand-off requirements, added explicit evidence/unknown-data constraints, and translated into English.
+These adaptations are not the full upstream prompts and are not endorsed by their authors.
+See best-prompts-Apache-2.0.txt and the source URL attached to each prompt.
