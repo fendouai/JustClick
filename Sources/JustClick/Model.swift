@@ -7,6 +7,39 @@ import JustClickCore
 
 @MainActor
 final class Model: ObservableObject {
+    @Published var collapsed = true {
+        didSet { Preferences.defaults.set(collapsed, forKey: "quickCollapsed"); resizeQuick?() }
+    }
+    @Published var keepExpanded = Preferences.defaults.bool(forKey: "quickPinned") {
+        didSet { Preferences.defaults.set(keepExpanded, forKey: "quickPinned"); resizeQuick?() }
+    }
+    @Published var menuBarOnly = Preferences.defaults.bool(forKey: "menuBarOnly") {
+        didSet { Preferences.defaults.set(menuBarOnly, forKey: "menuBarOnly"); modeChanged?() }
+    }
+    var modeChanged: (() -> Void)?
+    var anchorMoved: (() -> Void)?
+    var closeQuick: (() -> Void)?
+    @Published var deliveryFeedback = false
+    var visibleQuickResults: [Prompt] { quickQuery.isEmpty && !keepExpanded ? Array(quickResults.prefix(5)) : quickResults }
+    @Published var quickQuery = ""
+    @Published var quickSelected: UUID?
+    @Published private var quickOrder: [UUID] = []
+    var openManager: ((Page) -> Void)?
+    var resizeQuick: (() -> Void)?
+    var quickResults: [Prompt] {
+        let matching = library.browse(quickQuery, language: language, frequent: false)
+        if !quickQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return matching }
+        return quickOrder.compactMap { id in matching.first { $0.id == id } }
+    }
+    func refreshQuickOrder() {
+        quickOrder = library.browse("", language: language, frequent: true).map(\.id)
+        Preferences.defaults.set(quickOrder.map(\.uuidString), forKey: "quickOrder-" + language.rawValue)
+    }
+    func restoreQuickOrder() {
+        let saved = Preferences.defaults.stringArray(forKey: "quickOrder-" + language.rawValue) ?? []
+        quickOrder = saved.compactMap(UUID.init(uuidString:)).filter { id in library.prompts.contains { $0.id == id && $0.effectiveLanguage == language } }
+        if quickOrder.isEmpty { refreshQuickOrder() }
+    }
     enum Page: String { case library, discovery }
     @Published var page: Page = .library
     @Published var historyReport: HistoryDiscoveryReport?
@@ -15,8 +48,9 @@ final class Model: ObservableObject {
     @Published var language: PromptLanguage = PromptLanguage(rawValue:Preferences.defaults.string(forKey:"promptLanguage") ?? "") ?? .preferred {
         didSet {
             Preferences.defaults.set(language.rawValue,forKey:"promptLanguage")
-            query = ""; category = nil; selected = results.first?.id; refreshMenu?()
+            query = ""; quickQuery = ""; category = nil; selected = results.first?.id; refreshMenu?()
             selectedHistoryKeys = []
+            restoreQuickOrder()
         }
     }
     @Published var frequentOnly = true
@@ -66,6 +100,7 @@ final class Model: ObservableObject {
                 catch { message = "提示词已添加，但升级标记未保存：\(error.localizedDescription)" }
             }
         }
+        restoreQuickOrder()
     }
 
     var results: [Prompt] { library.browse(query,category:category,language:language,frequent:frequentOnly) }
@@ -102,7 +137,7 @@ final class Model: ObservableObject {
     @discardableResult
     func persist(_ next: Library) -> Bool {
         guard !loadFailed else { message = "请先导入有效备份，避免覆盖无法读取的原文件。"; return false }
-        do { try file.save(next); library = next; refreshMenu?(); return true }
+        do { try file.save(next); library = next; restoreQuickOrder(); refreshMenu?(); return true }
         catch { message = "保存失败：\(error.localizedDescription)"; return false }
     }
     func save(_ prompt: Prompt) -> Bool {
@@ -219,12 +254,14 @@ final class Model: ObservableObject {
         retryLocked = false
         recordUsage(prompt)
         busy = true
+        deliveryFeedback = true
         Task {
             let result = await delivery.deliver(prompt.body, send: send)
             message = result.message
             deliveryGate.finish(uncertain: result.uncertain)
             retryLocked = result.uncertain
             busy = false
+            if result.succeeded && !keepExpanded { closeQuick?() }
             refreshMenu?()
             refreshCompanion?()
         }

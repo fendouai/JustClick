@@ -13,8 +13,10 @@ import json, sys
 from pathlib import Path
 result = json.loads(Path(sys.argv[1]).read_text())
 assert result['windowVisible'], result
+assert result['quickCount'] == 8, result
+assert result['managerAvailable'], result
 assert result['hotKeyRegistered'] or result['hotKeyConflictReported'], result
-assert 320 <= result['sidebarWidth'] <= 520, result
+assert 260 <= result['sidebarWidth'] <= 520, result
 assert result['menuItems'] >= 12, result
 assert result['promptCount'] == result['builtinCount'] == 80, result
 assert result['clipboardRoundTrip'], result

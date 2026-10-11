@@ -240,3 +240,22 @@ JustClick 的 `AXIsProcessTrusted` 为 false，本机没有给应用辅助功能
 ## 0.7.1 主界面发现按钮（2026-10-05）
 
 新增标题下方的「从对话发现常用」按钮，使用 text.bubble 标准图标，带完整悬停说明与中英文文字。release 构建、签名和安装通过；实际点击新按钮完成106个会话读取与5类个人常用更新，首屏和数量反馈正确。截图确认按钮清晰可见，两项权限正常。
+
+## 0.9.0 — compact working surface (2026-10-11)
+
+- Added a separate compact quick panel (360 px default width) and retained the full library/discovery UI in an independent management window.
+- Added click-to-expand handle, persistent pin/collapse preferences, independent quick search, and per-language saved shortcut ordering. Usage updates preserve the ordering; explicit refresh recomputes it.
+- The footer displays the remembered app/window and delivery feedback. Missing Accessibility permission has an inline setup entry; quick send is disabled without a remembered target or permission. Delivery validation remains unchanged.
+- Native UI checks: collapse/expand, opening the discovery management tab, Chinese/English switching, and returning to the Chinese library. Existing 45 Chinese and 40 English prompts remain available.
+- The rebuilt installed app reports Accessibility and Screen Recording as needing authorization. This UI verification did not send messages to Codex and does not establish a new end-to-end delivery result.
+
+- Final `scripts/check.sh` passed: 16 core checks, release build/signature/plist validation, isolated native smoke checks including language-specific quick lists, stable order after usage, separate search, collapse/expand dimensions, clipboard and library round trips. Final build installed at `~/Applications/JustClick.app`; inline permission entry verified.
+
+## 0.10.0 — icon and transient menu (2026-10-11)
+
+- Default 28×28 point borderless icon; 280×390 menu with five stable shortcuts. Pinned mode retains the larger eight-item panel. Menu-bar-only mode hides the workspace entry.
+- Explicit delivery success flag propagates through AX, visual fallback and cached visual results. Only verified fill/send success auto-collapses; failures and uncertain receipts retain feedback.
+- Local/global outside-click monitors dismiss unpinned menus, excluding in-flight delivery. Escape collapses to icon or hides in menu-bar mode. Native drag uses event coordinates instead of sampled cursor position, avoiding synthetic-drag misclassification.
+- Passed 16 core checks and isolated native smoke: five-item default, 28-point geometry, menu-bar hide/reopen/close, stable ranking, language switching and library preservation.
+- Installed 0.10.0 in ~/Applications/JustClick.app. Native UI verified icon→menu, menu-bar-only hide and reopen, drag without accidental expansion, click after drag, and Escape collapse. Screenshot: docs/images/quick-menu-zh-cn.jpg.
+- Installed app still reports Accessibility permission needed. No new Codex message was sent; successful-delivery auto-collapse is wired to verified result flags but has not been revalidated against the actual Codex composer in this UI session.

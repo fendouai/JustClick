@@ -16,6 +16,7 @@ final class Delivery: PasteBackend {
     struct Result {
         let message: String
         var uncertain = false
+        var succeeded = false
     }
     private(set) var target: Target?
     private(set) var sourceApp: NSRunningApplication?
@@ -392,7 +393,7 @@ final class Delivery: PasteBackend {
                 verified = await verifyByCopy(text,app:app)
             }
             guard verified else { return Result(message:"已尝试粘贴，但视觉及复制回读均未确认完整内容；请检查输入框，不会重复粘贴或发送。", uncertain:true) }
-            guard send else { return Result(message:"已通过＋和麦克风定位并填入，内容核对通过，尚未发送。") }
+            guard send else { return Result(message:"已通过＋和麦克风定位并填入，内容核对通过，尚未发送。", succeeded: true) }
             guard let beforeSend = try await visualScreenshot(fresh), scopeMatches(), !Task.isCancelled else { return Result(message:"发送前窗口已变化，未发送。",uncertain:true) }
             let visuallyConfirmed = VisualComposer.agrees(try visualText(beforeSend,candidate:fresh),with:text)
             var confirmedBeforeSend = visuallyConfirmed
@@ -418,7 +419,7 @@ final class Delivery: PasteBackend {
                 let lines = try LocalOCR.recognize(after)
                 if VisualComposer.permitsEmptyInput(try visualText(after,candidate:fresh)),
                    (messageMatches(sessionWindow,text:text) > beforeCount || fresh.messageOccurrences(lines,expected:text) > visualBefore) {
-                    return Result(message:"已通过图标定位、填入并发送，聊天回执核对通过。")
+                    return Result(message:"已通过图标定位、填入并发送，聊天回执核对通过。", succeeded: true)
                 }
             }
             return Result(message:"已操作发送，但未确认聊天回执；请检查，不会重复发送。",uncertain:true)
@@ -453,7 +454,7 @@ final class Delivery: PasteBackend {
                 if let image = try await visualScreenshot(cache.composer), cache.matches(image,window:cache.composer.window) {
                     let result = await fillVisually(text,send:send,candidate:cache.composer,initialImage:image)
                     if result.uncertain { invalidatePositionCache() }
-                    return Result(message:"位置缓存命中：跳过完整定位。\n" + result.message,uncertain:result.uncertain)
+                    return Result(message:"位置缓存命中：跳过完整定位。\n" + result.message,uncertain:result.uncertain, succeeded:result.succeeded)
                 }
             } catch { /* A failed fast path falls back to normal discovery. */ }
             invalidatePositionCache()
@@ -461,7 +462,7 @@ final class Delivery: PasteBackend {
         let filled = await PastePipeline.fill(text, backend: self, checks: 20, acceptMatchingDraft: send)
         if filled.status == .noTarget, let visualCandidate {
             let result = await fillVisually(text, send: send, candidate: visualCandidate)
-            return Result(message: visualDiagnostics + "。\n" + result.message, uncertain: result.uncertain)
+            return Result(message: visualDiagnostics + "。\n" + result.message, uncertain: result.uncertain, succeeded: result.succeeded)
         }
         guard filled.status == .filled, let target = self.target else {
             let messages: [PasteStatus: String] = [
@@ -478,7 +479,7 @@ final class Delivery: PasteBackend {
             return Result(message: messages[filled.status] ?? "填入失败，未发送。", uncertain: filled.uncertain)
         }
         let visibleBefore = send ? messageMatches(target.window, text: text) : 0
-        guard send else { return Result(message: "已核对并填入，尚未发送。") }
+        guard send else { return Result(message: "已核对并填入，尚未发送。", succeeded: true) }
         guard matches(target), AX.text(target.element) == text else {
             return Result(message: "已填入，但发送前窗口或内容发生变化，未发送。")
         }
@@ -505,7 +506,7 @@ final class Delivery: PasteBackend {
             guard matches(target) else { return Result(message: "发送后聊天上下文变化，结果无法确认；请检查原聊天，勿直接重试。", uncertain: true) }
             let receipt = DeliveryReceipt.evaluate(contextMatches: true, draft: AX.text(target.element), inserted: text,
                                                    visibleMatchesBefore: visibleBefore, visibleMatchesAfter: messageMatches(target.window, text: text))
-            if receipt == .confirmed { return Result(message: kind == "queue" ? "已核对当前界面的新增内容，排队请求已受理。" : "已核对当前界面的新增消息，发送已确认。") }
+            if receipt == .confirmed { return Result(message: kind == "queue" ? "已核对当前界面的新增内容，排队请求已受理。" : "已核对当前界面的新增消息，发送已确认。", succeeded: true) }
         }
         return Result(message: "已请求\(kind == "queue" ? "排队" : "发送")，但无法确认回执。请先检查 Codex，再解除重试锁定。", uncertain: true)
     }

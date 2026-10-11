@@ -2,7 +2,15 @@
 
 # JustClick
 
-### 常用提示词，一键填入 Codex。
+### 更轻的工作方式
+
+<p align="center"><img src="docs/images/quick-menu-zh-cn.jpg" width="280" alt="JustClick 0.10 temporary prompt menu" /></p>
+
+默认只显示 28 点的小图标，点击展开 280 点宽、5 条常用指令的临时菜单：点击名称填入，纸飞机发送。点击外部或按 Esc 收起；操作核对成功后也会收起，失败或回执不确定时保留反馈。固定展开可使用较大的 8 条指令面板；「仅菜单栏模式」可完全隐藏工作区入口。点击「我的提示词」打开完整管理窗口，点击「发现常用」进入候选审核标签页。使用次数变化不会使按钮跳位；通过「刷新常用排序」主动更新推荐。快捷搜索与管理窗口筛选互不影响。
+
+底部显示已记住的目标窗口与操作状态。尚无目标或辅助功能权限时，自动发送不可用；每次点击仍会重新验证目标。
+
+## 常用提示词，一键填入 Codex。
 
 把每天都会用到的提示词，放在 Codex 旁边。
 
@@ -13,7 +21,7 @@
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111827?style=flat-square)
 ![Swift 与 AppKit](https://img.shields.io/badge/built_with-Swift_%2B_AppKit-F05138?style=flat-square)
 ![80 条双语提示词](https://img.shields.io/badge/starter_library-80_prompts-2563EB?style=flat-square)
-![预览版 0.8.0](https://img.shields.io/badge/status-0.8.0_preview-8B5CF6?style=flat-square)
+![预览版 0.8.0](https://img.shields.io/badge/status-0.10.0_preview-8B5CF6?style=flat-square)
 
 </div>
 

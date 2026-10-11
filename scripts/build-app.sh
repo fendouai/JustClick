@@ -14,8 +14,8 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>JustClick</string>
 <key>CFBundleDisplayName</key><string>JustClick</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.8.0</string>
-<key>CFBundleVersion</key><string>20</string>
+<key>CFBundleShortVersionString</key><string>0.10.0</string>
+<key>CFBundleVersion</key><string>22</string>
 <key>NSScreenCaptureUsageDescription</key><string>仅在输入框无法通过焦点和辅助功能定位时，本地识别当前窗口的输入区域，不上传截图。</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>LSUIElement</key><true/>

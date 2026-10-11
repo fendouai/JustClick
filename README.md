@@ -2,7 +2,15 @@
 
 # JustClick
 
-### Your prompts. One click into Codex.
+### A lighter way to work
+
+<p align="center"><img src="docs/images/quick-menu-zh-cn.jpg" width="280" alt="JustClick 0.10 temporary prompt menu" /></p>
+
+The default surface is a 28-point icon. Click it for a temporary 280-point menu with five stable shortcuts: click a title to fill, or its paper plane to send. Click outside or press Escape to collapse. Confirmed successful delivery also collapses the menu; failures and uncertain receipts retain feedback. Pin it open for a larger eight-shortcut panel, or choose Menu bar only to keep the workspace clear. **My prompts** opens the full management window; **Discover prompts** opens its review tab. Usage does not shuffle buttons under your pointer. Choose **Refresh frequent prompts** to update recommendations. Search in the quick panel is independent of management filters.
+
+The footer shows the remembered target window and operation status. Auto-send is unavailable until a target and Accessibility permission are available; delivery still validates the target on every click.
+
+## Your prompts. One click into Codex.
 
 A macOS sidebar to save, discover, and reuse the prompts you reach for every day.
 
@@ -13,7 +21,7 @@ A macOS sidebar to save, discover, and reuse the prompts you reach for every day
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111827?style=flat-square)
 ![Swift and AppKit](https://img.shields.io/badge/built_with-Swift_%2B_AppKit-F05138?style=flat-square)
 ![80 bilingual prompts](https://img.shields.io/badge/starter_library-80_prompts-2563EB?style=flat-square)
-![Preview 0.8.0](https://img.shields.io/badge/status-0.8.0_preview-8B5CF6?style=flat-square)
+![Preview 0.10.0](https://img.shields.io/badge/status-0.10.0_preview-8B5CF6?style=flat-square)
 
 </div>
 

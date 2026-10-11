@@ -7,8 +7,8 @@ final class PromptPanel: NSPanel {
     var dismissSidebar: (() -> Void)?
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
-    override func cancelOperation(_ sender: Any?) { dismissSidebar?(); orderOut(nil) }
-    override func close() { dismissSidebar?(); orderOut(nil) }
+    override func cancelOperation(_ sender: Any?) { dismissSidebar?() }
+    override func close() { dismissSidebar?() }
 }
 
 @MainActor
@@ -16,10 +16,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     let model = Model()
     var status: NSStatusItem!
     var panel: PromptPanel!
+    var manager: NSWindow!
     var hotKey: EventHotKeyRef?
     var hotKeyConflict = false
     var handler: EventHandlerRef?
     var keyboardMonitor: Any?
+    var outsideMonitor: Any?
+    var localMouseMonitor: Any?
     var companion: Companion?
     var reopenObserver: NSObjectProtocol?
 
@@ -30,12 +33,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         }
         configureMainMenu()
         panel = PromptPanel(contentRect: NSRect(x: 0, y: 0, width: 420, height: 800),
-                            styleMask: [.titled, .closable, .resizable, .fullSizeContentView, .nonactivatingPanel], backing: .buffered, defer: false)
+                            styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.delegate = self
-        panel.minSize = NSSize(width:320,height:480)
+        panel.minSize = NSSize(width:28,height:28)
+        panel.isOpaque = false; panel.backgroundColor = .clear
+        panel.hasShadow = true
         model.resetWindowSize = { [weak self] in
-            Preferences.defaults.removeObject(forKey:"sidebarPreferredWidth")
-            Preferences.defaults.removeObject(forKey:"sidebarPreferredHeight")
+            Preferences.defaults.removeObject(forKey:"quickPreferredWidth")
+            Preferences.defaults.removeObject(forKey:"quickPreferredHeight")
             guard let self else { return }
             self.companion?.position(self.model.delivery.windowFrame)
         }
@@ -46,14 +51,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
         panel.isMovableByWindowBackground = true
-        panel.contentView = NSHostingView(rootView: PickerView(model: model))
+        panel.contentView = NSHostingView(rootView: QuickPanelView(model: model))
+        manager = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 780),
+                           styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        manager.title = "JustClick"
+        manager.minSize = NSSize(width: 420, height: 600)
+        manager.isReleasedWhenClosed = false
+        manager.contentView = NSHostingView(rootView: PickerView(model: model))
+        manager.center()
+        model.openManager = { [weak self] page in
+            guard let self else { return }
+            self.model.query = ""; self.model.category = nil; self.model.page = page
+            if page == .discovery { self.model.openDiscovery() }
+            self.manager.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        model.resizeQuick = { [weak self] in
+            guard let self else { return }
+            if self.model.keepExpanded && !self.model.collapsed { self.panel.styleMask.insert(.resizable) }
+            else { self.panel.styleMask.remove(.resizable) }
+            self.companion?.position(self.model.delivery.windowFrame)
+        }
         keyboardMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, self.panel.isKeyWindow, !self.model.showEditor, self.model.page == .library,
+            guard let self, self.panel.isKeyWindow, !self.model.showEditor,
                   event.modifierFlags.intersection([.command, .control, .option]).isEmpty else { return event }
             // NSTextField consumes arrows before SwiftUI's onMoveCommand.
-            if event.keyCode == UInt16(kVK_DownArrow) { self.model.move(1); return nil }
-            if event.keyCode == UInt16(kVK_UpArrow) { self.model.move(-1); return nil }
-            if event.keyCode == UInt16(kVK_Escape) { self.companion?.dismiss(); self.panel.orderOut(nil); return nil }
+            if event.keyCode == UInt16(kVK_DownArrow) { self.moveQuick(1); return nil }
+            if event.keyCode == UInt16(kVK_UpArrow) { self.moveQuick(-1); return nil }
+            if event.keyCode == UInt16(kVK_Escape) { self.companion?.closeMenu(); return nil }
             return event
         }
         model.hide = { [weak self] in self?.companion?.dismiss(); self?.panel.orderOut(nil) }
@@ -66,7 +91,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         if status.button?.image == nil { status.button?.title = "JC" }
         buildMenu(); registerHotKey()
         companion = Companion(model: model, panel: panel)
-        panel.dismissSidebar = { [weak self] in self?.companion?.dismiss() }
+        model.collapsed = !model.keepExpanded
+        panel.dismissSidebar = { [weak self] in self?.companion?.closeMenu() }
+        model.anchorMoved = { [weak self] in self?.companion?.rememberPosition() }
+        model.closeQuick = { [weak self] in self?.companion?.closeMenu() }
+        model.modeChanged = { [weak self] in
+            guard let self else { return }
+            if self.model.menuBarOnly { self.companion?.dismiss() }
+            else { self.model.collapsed = true; self.companion?.resume() }
+            self.buildMenu()
+        }
+        outsideMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, !self.model.keepExpanded, !self.model.busy else { return }
+                self.companion?.closeMenu()
+            }
+        }
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            if let self, event.window === self.manager, !self.model.keepExpanded, !self.model.busy { self.companion?.closeMenu() }
+            return event
+        }
         model.refreshCompanion = { [weak self] in self?.companion?.resume() }
         if !CommandLine.arguments.contains("--smoke-test") { companion?.start() }
         if CommandLine.arguments.contains("--show") { showPicker(capture: true) }
@@ -81,6 +125,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
                 var modelRoundTrip = false
                 if ProcessInfo.processInfo.environment["JUSTCLICK_DATA_DIR"] != nil {
                     let original = self.model.library
+                    let originalLanguage = self.model.language
+                    self.model.language = .zh
+                    let chineseQuick = self.model.quickResults.count == 8 && self.model.quickResults.allSatisfy { $0.effectiveLanguage == .zh }
+                    self.model.language = .en
+                    let englishQuick = self.model.quickResults.count == 8 && self.model.quickResults.allSatisfy { $0.effectiveLanguage == .en }
+                    self.model.language = originalLanguage
+                    self.model.query = "no-management-match"
+                    let independentSearch = self.model.quickResults.count == 8
+                    self.model.query = ""
+                    self.model.collapsed = true
+                    let collapsedWidth = self.panel.frame.width == 28 && self.panel.frame.height == 28
+                    self.model.collapsed = false
+                    let fivePrompts = self.model.visibleQuickResults.count == 5
+                    self.model.menuBarOnly = true
+                    let menuModeHidden = !self.panel.isVisible
+                    self.showPicker(capture: false)
+                    self.companion?.closeMenu()
+                    let menuModeClosed = !self.panel.isVisible
+                    self.model.menuBarOnly = false
+                    self.showPicker(capture: false)
+                    self.model.collapsed = false
+                    let expandedWidth = self.panel.frame.width >= 260
+                    let stableOrder = self.model.quickResults.map(\.id)
+                    if let prompt = self.model.quickResults.last { self.model.recordUsage(prompt) }
+                    let stableAfterUsage = stableOrder == self.model.quickResults.map(\.id)
                     let probe = Prompt(title: "native-check", body: sample, category: "测试")
                     let saved = self.model.save(probe)
                     let diskMatches = (try? self.model.file.load().prompts.contains(probe)) == true
@@ -88,11 +157,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
                     let searchMatches = self.model.results.map(\.id) == [probe.id]
                     self.model.query = ""
                     let restored = self.model.persist(original)
+                    self.model.restoreQuickOrder()
                     self.model.selected = self.model.results.first?.id
-                    modelRoundTrip = saved && diskMatches && searchMatches && restored
+                    modelRoundTrip = saved && diskMatches && searchMatches && restored && stableAfterUsage && chineseQuick && englishQuick && independentSearch && collapsedWidth && expandedWidth && fivePrompts && menuModeHidden && menuModeClosed
                 }
                 let result: [String: Any] = [
                     "windowVisible": self.panel.isVisible,
+                    "quickCount": self.model.quickResults.count,
+                    "managerAvailable": self.manager.contentView != nil,
+                    "quickWidth": self.panel.frame.width,
                     "promptCount": self.model.library.prompts.count,
                     "builtinCount": Builtins.prompts.count,
                     "menuItems": self.status.menu?.items.count ?? 0,
@@ -135,6 +208,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     func buildMenu() {
         let menu = NSMenu(); menu.delegate = self
         add("打开提示词菜单  ⌃⌥P", action: #selector(openPicker), to: menu)
+        add(model.language == .zh ? "仅菜单栏模式" : "Menu bar only", action: #selector(toggleMenuOnly), to: menu)
+        menu.items.last?.state = model.menuBarOnly ? .on : .off
         menu.addItem(.separator())
         for prompt in model.results.prefix(12) {
             let item = NSMenuItem(title: prompt.title, action: #selector(usePrompt(_:)), keyEquivalent: "")
@@ -153,29 +228,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         let item = NSMenuItem(title: model.t(title), action: action, keyEquivalent: ""); item.target = self; menu.addItem(item)
     }
     @objc func openPicker() { showPicker(capture: false) }
-    @objc func addPrompt() { showPicker(capture: false); model.edit() }
+    @objc func addPrompt() { model.openManager?(.library); model.edit() }
     @objc func usePrompt(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String,
               let prompt = model.library.prompts.first(where: { $0.id.uuidString == id }) else { return }
         model.use(prompt)
     }
+    @objc func toggleMenuOnly() { model.menuBarOnly.toggle() }
     @objc func access() { model.delivery.requestAccess() }
     @objc func quit() { NSApp.terminate(nil) }
+    func windowDidMove(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, window === panel,
+              NSApp.currentEvent?.type == .leftMouseDragged else { return }
+        companion?.rememberPosition()
+    }
     func windowDidEndLiveResize(_ notification: Notification) {
-        guard let window = notification.object as? NSWindow, window === panel else { return }
-        Preferences.defaults.set(Double(window.frame.width),forKey:"sidebarPreferredWidth")
-        Preferences.defaults.set(Double(window.frame.height),forKey:"sidebarPreferredHeight")
+        guard let window = notification.object as? NSWindow, window === panel, !model.collapsed else { return }
+        Preferences.defaults.set(Double(window.frame.width),forKey:"quickPreferredWidth")
+        Preferences.defaults.set(Double(window.frame.height),forKey:"quickPreferredHeight")
     }
 
+    func moveQuick(_ delta: Int) {
+        let items = model.visibleQuickResults
+        guard !items.isEmpty else { return }
+        let index = items.firstIndex { $0.id == model.quickSelected } ?? 0
+        model.quickSelected = items[max(0, min(items.count - 1, index + delta))].id
+    }
     func showPicker(capture: Bool) {
+        model.collapsed = false
         if capture { model.delivery.capture() }
-        model.query = ""; model.category = nil; model.selected = model.results.first?.id
+        model.quickQuery = ""; model.quickSelected = model.quickResults.first?.id
         companion?.position(model.delivery.windowFrame)
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
     func toggle() {
-        if panel.isVisible && panel.isKeyWindow { companion?.dismiss(); panel.orderOut(nil) }
+        if panel.isVisible && panel.isKeyWindow && !model.collapsed { companion?.closeMenu() }
         else { showPicker(capture: true) }
     }
 
@@ -206,6 +294,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         companion?.stop()
         if let hotKey { UnregisterEventHotKey(hotKey) }
         if let handler { RemoveEventHandler(handler) }
+        if let outsideMonitor { NSEvent.removeMonitor(outsideMonitor) }
+        if let localMouseMonitor { NSEvent.removeMonitor(localMouseMonitor) }
         if let keyboardMonitor { NSEvent.removeMonitor(keyboardMonitor) }
         if let reopenObserver { DistributedNotificationCenter.default().removeObserver(reopenObserver) }
     }

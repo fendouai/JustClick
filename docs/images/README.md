@@ -13,3 +13,7 @@ These images were captured from the running JustClick 0.8.0 macOS application on
 | `editor-zh-cn.jpg` | The Chinese editor opened on an existing code-review prompt. |
 
 Editor dialogs were cancelled after capture; no prompt text was edited or submitted. No Codex conversation window was captured. Screenshots may show “No Codex target” because only the JustClick window was active during documentation capture. Screenshots demonstrate the UI; they are not an end-to-end delivery receipt.
+
+- `quick-panel-zh-cn.jpg`: actual installed 0.9.0 quick panel, captured 2026-10-11. Send is disabled because this rebuilt app needs Accessibility permission. The purple indicator is macOS screen-sharing UI. No compositing or retouching.
+
+- `quick-menu-zh-cn.jpg`: unretouched installed 0.10.0 temporary menu, captured 2026-10-11; send disabled while Accessibility permission is missing.
